@@ -6,6 +6,7 @@
 #include <iterator>
 
 #define FLAG 0
+#define cache_sz 5
 
 using namespace std;
 
@@ -46,7 +47,7 @@ typedef struct cache_way_blk{
 
 class Cache{
   public:
-    int64_t cache_sz;
+    // int64_t cache_sz;
     int64_t cache_filled;
     int64_t num_users = 0;
     int64_t cache_hits;
@@ -63,18 +64,20 @@ class Cache{
         new_way->num_blks = 0;
         new_way->cache_set;
         cache_way.push_back(*new_way);
-        
     
     }	
     
     int64_t insert_cache_blk(int64_t type, cache_blk* blk){
+        printf("c1\n");
         if(cache_filled >= cache_sz){
-	    evict(FLAG);
+          printf("c2\n");
+	        evict(FLAG);
         } 
+        
         cache_blk* new_blk = new cache_blk;
         if(type == 0){
-            
             insert_food_item(blk, new_blk);
+        printf("c3\n");
 	    new_blk->dirty = false;
             new_blk->lfu_cnt = 1;	
             cache_way[0].cache_set.push_back(*new_blk);
@@ -86,6 +89,7 @@ class Cache{
             free(new_blk); 
         }
         else if(type == 1){
+          printf("c4\n");
             insert_user_item(blk, new_blk);
             new_blk->dirty = false;
             new_blk->lfu_cnt = 1;
@@ -115,6 +119,7 @@ class Cache{
             free(new_blk); 
         }
         else if(type == 2){
+          printf("c5\n");
             insert_order_item(blk, new_blk);
             new_blk->dirty = false;
             new_blk->lfu_cnt = 1;
@@ -143,7 +148,7 @@ class Cache{
             }
             free(new_blk); 
         }
-
+        printf("c6\n");
         cache_acc++;
         return 0;
     }
@@ -478,32 +483,41 @@ class Cache{
     }
 
     int64_t evict(int flag){
-       vector<cache_way_blk>::iterator itr, min_itrw, itr_start, itr_end;
+       printf("e1\n");
+       vector<cache_way_blk>::iterator itr, min_itrw, itr_start, itr_end, itr_sec;
        itr_start = cache_way.begin();
        itr_end = cache_way.end();
-       int min_cnt = (flag) ? itr_start->lfu_cnt : itr_start->lru_cnt; 
+       itr_sec = next(itr_start, 1);
+       int min_cnt = (flag) ? itr_sec->lfu_cnt : itr_sec->lru_cnt; 
+       min_itrw = itr_sec;
+       printf("%d\n", min_cnt);
        for(itr = itr_start; itr < itr_end; itr++){
-	   if(flag == 0){	
-             if(itr->lru_cnt < min_cnt){
+	     if(flag == 0){	
+          printf("e2\n");
+             if(itr->lru_cnt < min_cnt && itr->lru_cnt != 0){
                 min_cnt = itr->lru_cnt;
                 min_itrw = itr;  
+                printf("%d\n", min_cnt);
              }
            }
            else{
-             if(itr->lfu_cnt < min_cnt){
+             if(itr->lfu_cnt < min_cnt && itr->lru_cnt != 0){
                 min_cnt = itr->lfu_cnt;
                 min_itrw = itr;  
              }
            }
        }
-
+       printf("e3\n");
        vector<cache_blk>::iterator itrs, min_itr, itr_starts, itr_ends;
        itr_starts = min_itrw->cache_set.begin();
+       printf("e4\n");
        itr_ends = min_itrw->cache_set.end();
+
        int min_cnts = (flag) ? itr_starts->lfu_cnt : itr_starts->lru_cnt; 
        
        for(itrs = itr_starts; itrs < itr_ends; itrs++){
 	   if(flag == 0){	
+              printf("e5\n");
              if(itrs->lru_cnt == min_cnts){
                 min_itr = itrs; 
                 break; 
@@ -524,7 +538,7 @@ class Cache{
        min_itrw->cache_set.erase(min_itr);
        min_itrw->num_blks--;
        cache_filled--; 
-
+       printf("e6\n");
        itr_starts = min_itrw->cache_set.begin();
        itr_ends = min_itrw->cache_set.end();
        if(min_itrw->num_blks > 0){
@@ -543,7 +557,7 @@ class Cache{
             cache_way.erase(min_itrw);
             num_users--;
        }
-         
+       printf("e7\n");  
        return 0;
     }
 
@@ -560,18 +574,18 @@ class Cache{
           itr_ends = itr->cache_set.end();
           printf("-------------------------------------------------------------------------\n");
           printf("Cache Way Index: %d\n", way_indx);
-          printf("Username: %s\n", itr->username);
+          printf("Username: %s\n", itr->username.c_str());
           printf("LRU count: %ld, LFU count: %ld, Num blocks: %ld\n", itr->lru_cnt, itr->lfu_cnt, itr->num_blks);
           printf("-------------------------------------------------------------------------\n");
           for(itrs = itr_starts; itrs < itr_ends; itrs++){
 	      if(itrs->type == 0){
-                  printf("Food Item: %s %ld %ld %ld %d\n", itrs->food_name, itrs->food_id, itrs->lru_cnt, itrs->lfu_cnt, itrs->dirty); 
+                  printf("Food Item: %s %ld %ld %ld %d\n", itrs->food_name.c_str(), itrs->food_id, itrs->lru_cnt, itrs->lfu_cnt, itrs->dirty); 
               }
               else if(itrs->type == 1){
-                  printf("User Item: %s %ld %ld %d\n", itrs->username, itrs->lru_cnt, itrs->lfu_cnt, itrs->dirty);
+                  printf("User Item: %s %ld %ld %d\n", itrs->username.c_str(), itrs->lru_cnt, itrs->lfu_cnt, itrs->dirty);
               }
               else if(itrs->type == 2){
-                  printf("Order Item: %s %ld %ld %d\n", itrs->ord_id, itrs->lru_cnt, itrs->lfu_cnt, itrs->dirty);
+                  printf("Order Item: %ld %ld %ld %d\n", itrs->ord_id, itrs->lru_cnt, itrs->lfu_cnt, itrs->dirty);
               }
               set_indx++;
           }
