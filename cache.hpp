@@ -77,11 +77,12 @@ class Cache{
         cache_blk* new_blk = new cache_blk;
         if(type == 0){
             insert_food_item(blk, new_blk);
+        //printf("%ld\n", new_blk->food_pr);
         printf("c3\n");
 	    new_blk->dirty = false;
             new_blk->lfu_cnt = 1;	
             cache_way[0].cache_set.push_back(*new_blk);
-	    cache_way[0].lru_cnt = (cache_way[0].lru_cnt == 0) ? 1 : cache_way[0].lru_cnt;
+	    cache_way[0].lru_cnt = (cache_way[0].lru_cnt == 0) ? new_blk->lru_cnt : cache_way[0].lru_cnt;
             cache_way[0].lfu_cnt = 1;
             cache_way[0].num_blks++; 
             num_food++;
@@ -214,7 +215,7 @@ class Cache{
                }
 
                if(itrs != itr_end){
-                  new_blk->lfu_cnt = itr->cache_set[index].lfu_cnt++;
+                  new_blk->lfu_cnt = ++itr->cache_set[index].lfu_cnt;
                   itr->cache_set[index] = *new_blk;
                   cache_hits++; 
                }
@@ -227,7 +228,7 @@ class Cache{
                }
                //itr->cache_set.push_back(*new_blk);
                int min_lru_cnt = itr_start->lru_cnt;
-               int min_lfu_cnt = itr_end->lfu_cnt;
+               int min_lfu_cnt = itr_start->lfu_cnt;
                for(itrs =  itr_start; itrs < itr_end; itrs++){
                   if(itrs->lru_cnt < min_lru_cnt) 
                     min_lru_cnt = itrs->lru_cnt;
@@ -280,7 +281,7 @@ class Cache{
                }
 
                if(itrs != itr_end){
-                  new_blk->lfu_cnt = itr->cache_set[index].lfu_cnt++;
+                  new_blk->lfu_cnt = ++itr->cache_set[index].lfu_cnt;
                   itr->cache_set[index] = *new_blk;
                   cache_hits++; 
                }
@@ -482,6 +483,149 @@ class Cache{
         return 0;
     }
 
+        cache_blk* search_cache_blk(int64_t type, cache_blk* blk){
+        cache_blk* new_blk = new cache_blk;
+        if(type == 0){
+           vector<cache_blk>::iterator itr, itrs;
+           for(itr = cache_way[0].cache_set.begin(); itr < cache_way[0].cache_set.end() && cache_way[0].num_blks > 0; itr++){
+               if(itr->food_id == blk->food_id)
+                  break;
+            }
+
+           if(itr != cache_way[0].cache_set.end()){
+               itr->lru_cnt = ++time;
+               itr->lfu_cnt = itr->lfu_cnt + 1;
+               
+               itr_start = cache_way[0].cache_set.begin();
+               itr_end = cache_way[0].cache_set.end(); 
+               int min_lru_cnt = itr_start->lru_cnt;
+               int min_lfu_cnt = itr_start->lfu_cnt;
+               for(itrs =  itr_start; itrs < itr_end; itrs++){
+                  if(itrs->lru_cnt < min_lru_cnt) 
+                    min_lru_cnt = itrs->lru_cnt;
+                  if(itrs->lfu_cnt < min_lfu_cnt)
+                    min_lfu_cnt = itrs->lfu_cnt;
+               }
+               cache_way[0].lru_cnt = min_lru_cnt;
+               cache_way[0].lfu_cnt = min_lfu_cnt;
+               insert_food_item((cache_blk*)&(*itr), new_blk);
+               new_blk->dirty = 0;
+               return new_blk;
+           }
+           else{
+              printf("Invalid food item search block");
+              new_blk->dirty = 1;
+              return new_blk;
+              
+           }
+           
+        }
+        else if(type == 1){
+           vector<cache_way_blk>::iterator itr;
+           vector<cache_blk>::iterator itrs, itr_start, itr_end, itrst;
+           for(itr = cache_way.begin(); itr < cache_way.end(); itr++){
+               if(itr->username == blk->username)
+                  break;
+           }
+           if(itr != cache_way.end()){
+               itr_start = itr->cache_set.begin();
+               itr_end = itr->cache_set.end();            
+
+               int index = 0;
+               for(itrs =  itr_start; itrs < itr_end; itrs++){
+                  if(itrs->type == blk->type)
+                    break;
+                  index++;   
+               }
+             
+               if(itrs != itr_end){
+                  itrs->lru_cnt = ++time;
+                  itrs->lfu_cnt = itrs->lfu_cnt + 1;
+
+                  int min_lru_cnt = itr_start->lru_cnt;
+                  int min_lfu_cnt = itr_start->lfu_cnt;
+                  for(itrst =  itr_start; itrst < itr_end; itrst++){
+                    if(itrst->lru_cnt < min_lru_cnt) 
+                      min_lru_cnt = itrst->lru_cnt;
+                    if(itrst->lfu_cnt < min_lfu_cnt)
+                      min_lfu_cnt = itrst->lfu_cnt;
+                  }
+                  itr->lru_cnt = min_lru_cnt;
+                  itr->lfu_cnt = min_lfu_cnt;                 
+
+                  insert_user_item((cache_blk*)&(*itrs), new_blk);
+                  new_blk->dirty = 0;
+                  return new_blk;
+               }
+               else{
+                  printf("Invalid user item search block");
+                  new_blk->dirty = 1;
+                  return new_blk;
+               }
+
+
+           }
+           else{
+              printf("Invalid user item search block");
+              new_blk->dirty = 1;
+              return new_blk;
+           }
+        }
+        else if(type == 2){
+           vector<cache_way_blk>::iterator itr;
+           vector<cache_blk>::iterator itrs, itr_start, itr_end, itrst;
+           for(itr = cache_way.begin(); itr < cache_way.end(); itr++){
+               if(itr->username == blk->username)
+                  break;
+           }
+           if(itr != cache_way.end()){
+               itr_start = itr->cache_set.begin();
+               itr_end = itr->cache_set.end();            
+
+               int index = 0;
+               for(itrs =  itr_start; itrs < itr_end; itrs++){
+                  if(itrs->ord_id == blk->ord_id)
+                    break;
+                  index++;   
+               }
+             
+               if(itrs != itr_end){
+                  itrs->lru_cnt = ++time;
+                  itrs->lfu_cnt = itrs->lfu_cnt + 1; 
+
+                  int min_lru_cnt = itr_start->lru_cnt;
+                  int min_lfu_cnt = itr_start->lfu_cnt;
+                  for(itrst =  itr_start; itrst < itr_end; itrst++){
+                    if(itrst->lru_cnt < min_lru_cnt) 
+                      min_lru_cnt = itrst->lru_cnt;
+                    if(itrst->lfu_cnt < min_lfu_cnt)
+                      min_lfu_cnt = itrst->lfu_cnt;
+                  }
+                  itr->lru_cnt = min_lru_cnt;
+                  itr->lfu_cnt = min_lfu_cnt;
+
+                  insert_user_item((cache_blk*)&(*itrs), new_blk);
+                  new_blk->dirty = 0;
+                  return new_blk;
+               }
+               else{
+                  printf("Invalid order item search block");
+                  new_blk->dirty = 1;
+                  return new_blk;
+               }
+
+
+           }
+           else{
+              printf("Invalid order item search block");
+              new_blk->dirty = 1;
+              return new_blk;
+           }
+        } 
+  
+    }
+
+
     int64_t evict(int flag){
        printf("e1\n");
        vector<cache_way_blk>::iterator itr, min_itrw, itr_start, itr_end, itr_sec;
@@ -501,7 +645,7 @@ class Cache{
              }
            }
            else{
-             if(itr->lfu_cnt < min_cnt && itr->lru_cnt != 0){
+             if(itr->lfu_cnt < min_cnt && itr->lfu_cnt != 0){
                 min_cnt = itr->lfu_cnt;
                 min_itrw = itr;  
              }
@@ -514,9 +658,10 @@ class Cache{
        itr_ends = min_itrw->cache_set.end();
 
        int min_cnts = (flag) ? itr_starts->lfu_cnt : itr_starts->lru_cnt; 
+       min_itr = itr_starts;
        
        for(itrs = itr_starts; itrs < itr_ends; itrs++){
-	   if(flag == 0){	
+	     if(flag == 0){	
               printf("e5\n");
              if(itrs->lru_cnt == min_cnts){
                 min_itr = itrs; 
@@ -524,6 +669,7 @@ class Cache{
              }
            }
            else{
+            printf("e6\n");
              if(itrs->lfu_cnt < min_cnts){
                 min_itr = itrs;  
                 break;
@@ -538,7 +684,7 @@ class Cache{
        min_itrw->cache_set.erase(min_itr);
        min_itrw->num_blks--;
        cache_filled--; 
-       printf("e6\n");
+       printf("e8\n");
        itr_starts = min_itrw->cache_set.begin();
        itr_ends = min_itrw->cache_set.end();
        if(min_itrw->num_blks > 0){
@@ -557,7 +703,7 @@ class Cache{
             cache_way.erase(min_itrw);
             num_users--;
        }
-       printf("e7\n");  
+       printf("e9\n");  
        return 0;
     }
 
@@ -579,13 +725,13 @@ class Cache{
           printf("-------------------------------------------------------------------------\n");
           for(itrs = itr_starts; itrs < itr_ends; itrs++){
 	      if(itrs->type == 0){
-                  printf("Food Item: %s %ld %ld %ld %d\n", itrs->food_name.c_str(), itrs->food_id, itrs->lru_cnt, itrs->lfu_cnt, itrs->dirty); 
+                  printf("Food Item: %s %ld %ld %ld %d\n", itrs->food_name.c_str(), itrs->food_pr, itrs->lru_cnt, itrs->lfu_cnt, itrs->dirty); 
               }
               else if(itrs->type == 1){
-                  printf("User Item: %s %ld %ld %d\n", itrs->username.c_str(), itrs->lru_cnt, itrs->lfu_cnt, itrs->dirty);
+                  printf("User Item: %s %s %ld %ld %d\n", itrs->username.c_str(), itrs->passwd.c_str(), itrs->lru_cnt, itrs->lfu_cnt, itrs->dirty);
               }
               else if(itrs->type == 2){
-                  printf("Order Item: %ld %ld %ld %d\n", itrs->ord_id, itrs->lru_cnt, itrs->lfu_cnt, itrs->dirty);
+                  printf("Order Item: %ld %ld %ld %ld %d\n", itrs->ord_id, itrs->lru_cnt, itrs->lfu_cnt, itrs->food_qty, itrs->dirty);
               }
               set_indx++;
           }
@@ -614,6 +760,7 @@ class Cache{
         new_blk->food_name = blk->food_name;
         new_blk->food_qty = blk->food_qty;
         new_blk->food_pr = blk->food_pr;
+        // printf("%ld %ld\n", new_blk->food_pr, blk->food_pr);
         new_blk->plrty = blk->plrty;
         new_blk->disct = blk->disct;
         new_blk->catgry = blk->catgry;

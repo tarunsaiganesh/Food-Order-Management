@@ -14,13 +14,15 @@ int main(){
     int reqs[SIZE];
     for (int i = 0; i < SIZE; i++)
     {
-      reqs[i] = 0;
-      test[i].food_id = 1000+i;
-      test[i].food_name = "item"+to_string(i);
-      test[i].username = "user"+to_string(i);
+      reqs[i] = i%3;
+      test[i].food_id = 1000+(i/3);
+      test[i].food_name = "item"+to_string(i%3);
+      test[i].username = "user"+to_string(i%3);
       test[i].passwd = "pass"+to_string(i);
-      test[i].ord_id = 200 + (i);
-      test[i].type = 2;
+      test[i].ord_id = 200 + (i%3);
+      test[i].food_qty = 10;
+      test[i].food_pr = (30+i);
+      test[i].type = i%3;
     }
     for(int i=0; i< SIZE; i++){
         cache_blk new_blk; 
@@ -32,6 +34,7 @@ int main(){
             printf("3\n");
            new_blk.food_id  = test[i].food_id;
            new_blk.food_name = test[i].food_name;
+           new_blk.food_pr = test[i].food_pr;
         }
         else if(blk_type == 1){
            printf("4\n");
@@ -42,6 +45,7 @@ int main(){
            printf("5\n");
            new_blk.username = test[i].username;
            new_blk.ord_id = test[i].ord_id;
+           new_blk.food_qty = test[i].food_qty;
         }
         else{
             printf("6\n");
@@ -49,9 +53,10 @@ int main(){
            return 0;
         }
         printf("7\n");
-        printf("%s\n", new_blk.username.c_str());
-        printf("%ld\n", new_blk.ord_id);
-        printf("%d\n", blk_type);
+        // printf("%s\n", new_blk.username.c_str());
+        // printf("%ld\n", new_blk.ord_id);
+        // printf("%d\n", blk_type);
+        printf("%ld\n", new_blk.food_pr);
         if(req_type == 0){
            printf("8\n");
            cache_obj->insert_cache_blk(blk_type, &new_blk);
